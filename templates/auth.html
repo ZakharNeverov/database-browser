@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column; /* Change to column layout */
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 90%;
+            max-width: 350px;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        input, button {
+            margin: 0.5em 0;
+            padding: 0.5em;
+            width: calc(100% - 1em);
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            cursor: pointer;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        .error-message {
+            color: crimson;
+            background-color: #ffcaca;
+            border: 1px solid crimson;
+            border-radius: 4px;
+            padding: 0.5em;
+            margin-bottom: 1em;
+            text-align: center;
+            box-sizing: border-box;
+            width: calc(100% - 1em);
+        }
+        label {
+            display: block;
+            margin-top: 1em;
+        }
+        #hiddenDiv {
+            display: none;
+        }
+        .footer { /* Add a footer section for your text */
+            text-align: center;
+            font-size: 0.75em; /* Small font size */
+            position: absolute; /* Position it at the bottom */
+            bottom: 1rem; /* Distance from the bottom */
+            width: 100%; /* Full width */
+            color: #666; /* Grey text color */
+        }
+    </style>
+    <script>
+        function toggleRegistration(checkbox) {
+            var hiddenDiv = document.getElementById('hiddenDiv');
+            var submitButton = document.getElementById('submitButton');
+            var Title = document.getElementById('title');
+            hiddenDiv.style.display = checkbox.checked ? 'block' : 'none';
+            submitButton.textContent = checkbox.checked ? 'Register' : 'Login';
+            Title.textContent = checkbox.checked ? 'Registration page' : 'Login page';
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        {% if error is not None %}
+            <div class="error-message">Error: {{ error }}</div>
+        {% endif %}
+        <h1 id="title">Login page</h1>
+        <form method="post" action="">
+            {% csrf_token %}
+            <label>Username</label>
+            <input name="username" required>
+
+            <label>Password</label>
+            <input name="password" type="password" required>
+
+            <div id="hiddenDiv">
+                <label>Re-enter password</label>
+                <input name="password2" type="password">
+            </div>
+
+            <button type="submit" id="submitButton">Login</button>
+            <div>
+                <label>New here?</label>
+                <input type="checkbox" id="checkbox" name="registration" onclick="toggleRegistration(this)">
+            </div>
+        </form>
+    </div>
+    <div class="footer">
+        Неверов З.А СПбПУ 2024 5130904/10103
+    </div>
+</body>
+</html>

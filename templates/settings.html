@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+        }
+
+        #sidebar {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Adjust alignment */
+        }
+
+        #sidebar a, .logout-button, .account-name {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            display: block; /* Ensure full width for click area */
+            margin: 0.5rem 0; /* Space out elements */
+        }
+
+        .account-name {
+            background-color: #5cb85c; /* Button-like appearance */
+            cursor: pointer; /* Mouse pointer */
+            position: relative; /* Position relative to allow absolute positioning inside */
+        }
+
+        .account-name svg {
+            margin-left: auto; /* Push SVG to the right */
+            fill: #ffffff; /* SVG color */
+        }
+
+        .account-name:hover {
+            background-color: #4cae4c; /* Hover effect */
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            height: 100vh;
+            overflow: auto;
+        }
+        #connection-list {
+            width: 30%;
+        }
+        input, button {
+            margin: 0.5em 0;
+            padding: 0.5em;
+            width: calc(100% - 1em);
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            cursor: pointer;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+        }
+
+        button:hover {
+            background-color: #4cae4c;
+        }
+
+        .logout-button {
+            background-color: crimson;
+        }
+
+        svg {
+            transform: translate(0, 0.28rem);
+        }
+
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0, 0, 0); /* Fallback color */
+            background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+            padding-top: 100px; /* Location of the box */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 300px; /* Adjust width of the modal */
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+
+    <a href="{% url 'main' %}">
+        <svg width="1.3rem" height="1.3rem" viewBox="0 0 1024 1024" fill="#ffffff" class="icon" version="1.1"
+             xmlns="http://www.w3.org/2000/svg" stroke="#ffffff" stroke-width="36.864">
+            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+            <g id="SVGRepo_iconCarrier">
+                <path d="M669.6 849.6c8.8 8 22.4 7.2 30.4-1.6s7.2-22.4-1.6-30.4l-309.6-280c-8-7.2-8-17.6 0-24.8l309.6-270.4c8.8-8 9.6-21.6 2.4-30.4-8-8.8-21.6-9.6-30.4-2.4L360.8 480.8c-27.2 24-28 64-0.8 88.8l309.6 280z"
+                      fill=""></path>
+            </g>
+        </svg>
+        Return to main page
+    </a>
+    <div class="account-name" onclick="showModal()">{{ username }}'s profile
+        <svg width="1.3rem" height="1.3rem" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+            <g id="SVGRepo_iconCarrier">
+                <path d="M10 12H20M20 12L17 9M20 12L17 15" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"
+                      stroke-linejoin="round"></path>
+                <path d="M4 12C4 7.58172 7.58172 4 12 4M12 20C9.47362 20 7.22075 18.8289 5.75463 17" stroke="#ffffff"
+                      stroke-width="1.5" stroke-linecap="round"></path>
+            </g>
+        </svg>
+    </div>
+</div>
+
+<div class="content">
+    {% if error is not None %}
+        <div class="error-message">Error: {{ error }}</div>
+    {% endif %}
+    {% if status is not None %}
+        <div class="status-message">Status: {{ status }}</div>
+    {% endif %}
+    <div id="connection-list">
+        <form method="post" action="">
+            {% csrf_token %}
+
+            <h3>Connection</h3>
+            <label>
+                <div>Host URL</div>
+            </label>
+            <div>
+                <input name="host" type="text" placeholder="localhost:3306" value="{{ db_host_url }}" required>
+            </div>
+            <label>
+                <div>Database name</div>
+            </label>
+            <div>
+                <input name="database" placeholder="Database" value="{{ db_name }}" required>
+            </div>
+
+            <h3>Authorisation</h3>
+            <label>
+                <div>Username</div>
+            </label>
+            <div>
+                <input name="username" type="text" placeholder="root" value="{{ db_username }}" required>
+            </div>
+            <label>
+                <div>Password</div>
+            </label>
+            <div>
+                <input name="password" type="password" value="{{ db_password }}" required>
+            </div>
+            <button type="submit">Save & test</button>
+        </form>
+    </div>
+
+</div>
+
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <p>Are you sure you want to log out?</p>
+        <a href="{% url 'auth' %}" class="logout-button">Logout</a>
+    </div>
+</div>
+
+<script>
+    function showModal() {
+        document.getElementById("myModal").style.display = "block";
+    }
+
+    function closeModal() {
+        document.getElementById("myModal").style.display = "none";
+    }
+
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function (event) {
+        if (event.target == document.getElementById("myModal")) {
+            closeModal();
+        }
+    }
+</script>
+
+</body>
+</html>

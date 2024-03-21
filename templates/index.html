@@ -1,0 +1,488 @@
+{% load index %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
+    <meta charset="UTF-8">
+    <title>Main page</title>
+
+    <style>
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1,
+            'wght' 100,
+            'GRAD' 0,
+            'opsz' 24
+        }
+
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+        }
+
+        #sidebar {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #sidebar > * + * {
+            margin-top: 1rem; /* Добавляет отступ между элементами сайдбара */
+        }
+
+        #sidebar a, .settings-button {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            background-color: #5cb85c; /* Green background */
+            margin-bottom: 0.5rem;
+            display: block; /* Make the link fill the container */
+        }
+
+        .buttons-container {
+            display: flex;
+            gap: 10px; /* Расстояние между кнопками */
+            margin-bottom: 20px; /* Отступ от кнопок до таблицы */
+        }
+
+
+        #table-list li a.active, #view-list li a.active, #trigger-list li a.active, #function-list li a.active {
+            background-color: #3d8b3d;
+        }
+
+
+        /* Стили для выпадающего списка */
+        details > summary {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            background-color: #5cb85c;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        details > ul {
+            display: none;
+            padding-left: 1rem;
+        }
+
+        details[open] > ul {
+            display: block;
+        }
+
+        #table-list, #view-list, #trigger-list,#function-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        #table-list li a, #view-list li a, #trigger-list li a, #function-list li a {
+            background-color: transparent; /* Remove the background color */
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-left: 20px; /* Add space between sidebar and table */
+        }
+
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #4CAF50;
+
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        /*added*/
+        .table-button {
+            background-color: #4CAF50; /* Зеленый цвет */
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            margin: 5px 0; /* Немного маржина сверху и снизу */
+            display: flex; /* Делаем кнопку flex-контейнером */
+            align-items: center; /* Вертикальное выравнивание по центру */
+            justify-content: center; /* Горизонтальное выравнивание по центру */
+            gap: 5px; /* Добавляем небольшой интервал между иконкой и текстом */
+            text-align: center;
+            transition: background-color 0.3s ease; /* Плавное изменение фона при наведении */
+        }
+
+        /* Убедитесь, что иконки и текст внутри кнопок также выравнены правильно */
+        .table-button span {
+            display: flex; /* Помогает с выравниванием содержимого */
+            align-items: center;
+        }
+
+        .table-button:hover {
+            background-color: #45a049; /* Темнее зеленый при наведении */
+        }
+
+        /* Стилизация кнопок Save, Delete и Add */
+        .save-btn {
+            background-color: #4CAF50;
+        }
+
+        /* Зеленый */
+        .delete-btn {
+            background-color: #f44336;
+        }
+
+        /* Красный */
+        .add-btn {
+            background-color: #008CBA;
+        }
+
+        /* Синий */
+
+        /* Стили для полей ввода */
+        input[type="text"] {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box; /* Чтобы padding не изменял размеры поля */
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: #4CAF50; /* Зеленый цвет границы при фокусе */
+            outline: none; /* Убрать стандартный outline */
+        }
+
+        /* Стили для нередактируемых полей */
+        input[readonly] {
+            background-color: #e9e9e9; /* Серый фон */
+            color: #686868; /* Темно-серый текст */
+            cursor: not-allowed;
+        }
+
+        /* Убираем маржин у последнего элемента в контейнере кнопок, если нужно */
+        .buttons-container > :last-child {
+            margin-right: 0;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const details = document.querySelectorAll('details');
+            details.forEach(detail => {
+                const isOpen = localStorage.getItem(detail.id + 'Open') === 'true';
+
+                if (isOpen) {
+                    detail.setAttribute('open', '');
+                }
+
+                detail.addEventListener('toggle', function () {
+                    localStorage.setItem(detail.id + 'Open', detail.open);
+                });
+            });
+
+            const currentPath = window.location.pathname.split('/').pop();
+            const links = document.querySelectorAll('#table-list a, #view-list a, #trigger-list a, #function-list a');
+
+            links.forEach(function (link) {
+                const linkTableOrView = link.getAttribute('href').split('/').pop();
+                if (linkTableOrView === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.save-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const row = button.closest('tr');
+                    const inputs = row.querySelectorAll('input');
+                    const data = new FormData();
+                    console.log(inputs)
+                    data.append('tablename', window.location.pathname.split('/').pop());
+                    inputs.forEach(input => {
+                        data.append(input.name, input.value);
+                    });
+
+                    fetch('/update-row/', {
+                        method: 'POST',
+                        body: data,
+                        credentials: 'same-origin',
+
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                console.log(data.message);
+
+                                window.location.reload()
+                            } else {
+                                console.error("Ошибка: ", data.message);
+
+                                alert('Unsuccessful modification ' + data.message)
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('Error:', error);
+                        });
+                });
+            });
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const row = button.closest('tr');
+                    const inputs = row.querySelectorAll('input');
+                    const data = new FormData();
+                    console.log(inputs)
+                    data.append('tablename', window.location.pathname.split('/').pop()); // Нужно указать имя таблицы
+                    data.append('is_delete', 'true')
+                    inputs.forEach(input => {
+                        data.append(input.name, input.value);
+                    });
+
+                    fetch('/update-row/', {
+                        method: 'POST',
+                        body: data,
+                        credentials: 'same-origin',
+
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                console.log(data.message);
+
+                                window.location.reload()
+                            } else {
+                                console.error("Ошибка: ", data.message);
+
+                                alert('Unsuccessful deletion ' + data.message)
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('Error:', error);
+                        });
+                });
+            });
+            document.querySelectorAll('.add-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const row = button.closest('tr');
+                    const inputs = row.querySelectorAll('input');
+                    const data = new FormData();
+                    console.log(inputs)
+                    data.append('tablename', window.location.pathname.split('/').pop()); // Нужно указать имя таблицы
+                    data.append('is_add', 'true');
+                    inputs.forEach(input => {
+                        data.append(input.name, input.value);
+                    });
+
+                    fetch('/update-row/', {
+                        method: 'POST',
+                        body: data,
+                        credentials: 'same-origin',
+
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                console.log(data.message);
+
+                                window.location.reload()
+                            } else {
+                                console.error("Ошибка: ", data.message);
+
+                                alert('Unsuccessful insertion ' + data.message)
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('Error:', error);
+                        });
+                });
+            });
+        });
+
+    </script>
+</head>
+<body>
+{% csrf_token %}
+<div id="sidebar">
+    <div id="header">
+        <a href="{% url 'settings' %}" class="bold settings-button">{{ username }} ({{ group_name }})</a>
+    </div>
+
+    <details>
+        <summary>Tables ({{ table_list|length }})</summary>
+        <ul id="table-list">
+            {% for table in table_list %}
+                <li>
+                    <a href="{% url 'table' table %}">{{ table }}</a>
+                </li>
+            {% empty %}
+                No entries
+            {% endfor %}
+        </ul>
+    </details>
+    <details>
+        <summary>Views ({{ view_list|length }})</summary>
+        <ul id="view-list">
+            {% for view in view_list %}
+                <li>
+                    <a href="{% url 'view' view %}">{{ view }}</a>
+                </li>
+            {% empty %}
+                No entries
+            {% endfor %}
+        </ul>
+    </details>
+    <details>
+        <summary>Triggers ({{ trigger_list|length }})</summary>
+        <ul id="trigger-list">
+            {% for trigger in trigger_list %}
+                <li>
+                    <a href="{% url 'trigger' trigger %}">{{ trigger }}</a>
+                </li>
+            {% empty %}
+                No entries
+            {% endfor %}
+        </ul>
+    </details>
+    <details>
+        <summary>Functions ({{ fucntion_list|length }})</summary>
+        <ul id="function-list">
+            {% for function in fucntion_list %}
+                <li>
+                    <a href="{% url 'function' function %}">{{ function }}</a>
+                </li>
+            {% empty %}
+                No entries
+            {% endfor %}
+        </ul>
+    </details>
+    <div style="color: #4CAF50;">Connected</div>
+    to {{ db_name }}
+</div>
+
+<div class="content">
+    {% if error is not None %}
+        <div class="error-message">Error: {{ error }}</div>
+    {% endif %}
+
+
+    {% if triggername is not None or funtionname is not None %} <!--If page is describing triggers,funtions -->
+        Definition:
+        <input type="text" value="{{ definition }}">
+    {% endif %}
+
+    {% if table_headers is not None and table_contents is not None %}
+        <div class="buttons-container">
+            <button class="table-button export-xls-button"
+                    onclick="window.location.href = '
+                            {% if tablename %}{% url 'export' tablename 'xlsx' %}{% else %}{% url 'export' viewname 'xlsx' %}{% endif %}'">
+
+                <span class="material-symbols-outlined">
+                table
+                </span>
+                <span>
+                    Export xslx
+                </span>
+            </button> <!-- Иконка для XLS -->
+            <button class="table-button export-csv-button"
+                    onclick="window.location.href = '
+                            {% if tablename %}{% url 'export' tablename 'csv' %}{% else %}{% url 'export' viewname 'csv' %}{% endif %}'">
+                <span class="material-symbols-outlined">
+                csv
+                </span>
+                <span>
+                    Export csv
+                </span>
+            </button> <!-- Иконка для CSV -->
+            <button class="table-button export-tex-button"
+                    onclick="window.location.href = '
+                            {% if tablename %}{% url 'export' tablename 'tex' %}{% else %}{% url 'export' viewname 'tex' %}{% endif %}'">
+                <span class="material-symbols-outlined">
+                function
+                </span>
+                <span>
+                    Export TeX
+                </span>
+            </button> <!-- Иконка для TeX -->
+        </div>
+        <table>
+            <tr>
+                {% for header in table_headers %}
+                    <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+            {% for row in table_contents %}
+
+                <tr>
+                    {% for element in row %}
+                        <td>
+                            {% if forloop.first or not is_admin or viewname is not None %}
+                                <input type="text" value="{{ element }}"
+                                       name="{{ table_headers|index:forloop.counter0 }}" readonly>
+                            {% else %}
+                                <input type="text" value="{{ element }}"
+                                       name="{{ table_headers|index:forloop.counter0 }}">
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                    {% if is_admin and viewname is None %}
+                        <td>
+                            <button class="save-btn table-button" data-row="{{ forloop.counter }}">                            <span
+                                    class="material-symbols-outlined">
+                            save
+                            </span>
+                            </button>
+                            <button class="delete-btn table-button" data-row="{{ forloop.counter }}">                            <span
+                                    class="material-symbols-outlined">
+                            delete
+                            </span>
+                            </button>
+                            <input type="hidden" name="header_primary_key" value="{{ table_headers|index:0 }}">
+                            <input type="hidden" name="row_primary_key" value="{{ row|index:0 }}">
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            {% if is_admin and viewname is None %}
+                <tr>
+                    {% for element in table_headers %}
+                        <td>
+                            <input type="text" name="{{ table_headers|index:forloop.counter0 }}">
+                        </td>
+                    {% endfor %}
+                    <td>
+                        <button class="add-btn table-button">
+                            <span class="material-symbols-outlined">
+                            add
+                            </span>
+                        </button>
+                    </td>
+                </tr>
+            {% endif %}
+        </table>
+    {% endif %}
+</div>
+
+</body>
+</html>
