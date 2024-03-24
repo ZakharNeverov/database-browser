@@ -20,16 +20,23 @@ EXPORT_FORMATS = ['xlsx', 'csv', 'tex']
 
 # Функция для обновления строки
 def update_row_in_table(conn, tablename, row_data):
-    # Ваша логика обновления строки в таблице
-    # Пример обновления одного поля:
-    # cursor.execute(sql.SQL("UPDATE {} SET column_name = %s WHERE id = %s").format(sql.Identifier(tablename)), [row_data['column_value'], row_data['row_id']])
     cursor = conn.cursor()
+
+    # Удаление ключей, которые не нужны для SQL запроса
     header_prim_key = row_data.pop('header_primary_key')
     row_prim_key = row_data.pop('row_primary_key')
+
+    # Формирование строки запроса с плейсхолдерами
     keys = ', '.join([f"{key} = %s" for key in row_data.keys()])
-    values = tuple(row_data.values())
+
+    # Замена пустых строк на None в значениях
+    values = tuple(None if value == "" else value for value in row_data.values())
+
+    # Выполнение запроса
     cursor.execute(f"UPDATE {tablename} SET {keys} WHERE {header_prim_key} = %s", values + (row_prim_key,))
+
     cursor.close()
+
 
 
 # Функция для добавления строки
@@ -146,7 +153,7 @@ def export_table(request, tablename, export_format):
             conn.close()
 
 
-def render_main_page(request, tablename=None, viewname=None, triggername = None, functionname = None):
+def render_main_page(request, tablename=None, viewname=None, triggername=None, functionname=None):
     if not request.user.is_authenticated:
         return redirect('auth')
     if not ('host_url' in request.session and
@@ -168,26 +175,52 @@ def render_main_page(request, tablename=None, viewname=None, triggername = None,
         conn = psycopg2.connect(host=request.session['host_url'], dbname=request.session['db_name'],
                                 user=request.session['username'], password=request.session['password'])
         cursor = conn.cursor()
-        cursor.execute("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public'")
+        cursor.execute("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public' ORDER BY tablename")
 
         table_list = [table[0] for table in cursor]
-        cursor.execute("select table_name from INFORMATION_SCHEMA.views where table_schema = 'public'")
+
+        tables_privileges = []
+        current_table_privileges = []
+        if tablename is not None:
+            query = SQL("\
+                        SELECT privilege_type\
+                        FROM information_schema.role_table_grants \
+                         WHERE grantee = %s AND table_schema = 'public' and table_name = %s")
+            privileges_list = cursor.execute(query, (request.session['username'], tablename,))
+            current_table_privileges = [listt[0] for listt in cursor]
+        has_update_privilege = 'UPDATE' in current_table_privileges
+        has_insert_privilege = 'INSERT' in current_table_privileges
+        has_delete_privilege = 'DELETE' in current_table_privileges
+
+        cursor.execute(
+            "select table_name from INFORMATION_SCHEMA.views where table_schema = 'public' ORDER BY table_name ")
         views_list = [view[0] for view in cursor]
-        cursor.execute("select trigger_name from INFORMATION_SCHEMA.triggers")
+        cursor.execute("select trigger_name from INFORMATION_SCHEMA.triggers ORDER BY trigger_name")
         trigger_list = [trigger[0] for trigger in cursor]
 
-        cursor.execute("select routine_name from information_schema.routines where routine_type = 'FUNCTION' and routine_schema = 'public'")
+        cursor.execute(
+            "select routine_name from information_schema.routines where routine_type = 'FUNCTION' and routine_schema = 'public' ORDER BY routine_name")
         function_list = [function[0] for function in cursor]
         print(len(function_list))
         table_contents = None
         table_headers = None
+        combined_data = None
+        column_types = None
         definition = None
         if tablename is not None:
+            cursor.execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %s",
+                           (tablename,))
+            column_types = {row[0]: row[1] for row in cursor.fetchall()}
             # Using a parameterized query for security
             query = SQL("SELECT * FROM {}").format(Identifier(tablename))
             cursor.execute(query)
-            table_contents = [row for row in cursor]
+            table_contents = [[element if element is not None else "" for element in row] for row in cursor.fetchall()]
             table_headers = [col.name for col in cursor.description]
+            combined_data = [
+                {"row_data": dict(zip(table_headers, row)), "row_primary_key": row[0]}
+                for row in table_contents
+            ]
+            asdsad = 123123
 
         elif viewname is not None:
             # Directly query the view
@@ -202,7 +235,8 @@ def render_main_page(request, tablename=None, viewname=None, triggername = None,
             definition = cursor.fetchone()[0]
         elif functionname is not None:
             # Directly query the view
-            query = SQL("SELECT routine_definition FROM information_schema.routines WHERE routine_type = 'FUNCTION' AND routine_schema = 'public' AND routine_name = %s;")
+            query = SQL(
+                "SELECT routine_definition FROM information_schema.routines WHERE routine_type = 'FUNCTION' AND routine_schema = 'public' AND routine_name = %s;")
 
             cursor.execute(query, (functionname,))
             definition = cursor.fetchone()[0]
@@ -213,7 +247,7 @@ def render_main_page(request, tablename=None, viewname=None, triggername = None,
     except Exception as ex:
         return render(request, 'index.html',
                       {'username': request.user.username, 'error': ex, 'table_list': table_list,
-                       'view_list': views_list, 'trigger_list': trigger_list,'function_list': function_list,
+                       'view_list': views_list, 'trigger_list': trigger_list, 'function_list': function_list,
                        'group_name': user_group, 'db_name': 'oopsie daisies'})
     finally:
         if cursor is not None:
@@ -223,49 +257,74 @@ def render_main_page(request, tablename=None, viewname=None, triggername = None,
 
     return render(request, 'index.html',
                   {'username': request.user.username, 'db_name': request.session['db_name'], 'table_list': table_list,
+                   'tables_privileges': tables_privileges, 'current_table_privileges': current_table_privileges,
                    'view_list': views_list, 'trigger_list': trigger_list, 'fucntion_list': function_list,
-                   'table_contents': table_contents, 'table_headers': table_headers, 'tablename': tablename, 'triggername': triggername, 'definition': definition,
+                   'table_contents': table_contents, 'table_headers': table_headers, 'tablename': tablename, 'combined_data': combined_data, 'column_types': column_types,
+                   'triggername': triggername, 'definition': definition,
                    'viewname': viewname, 'funtionname': functionname,
-                   'group_name': user_group,
+                   'group_name': user_group, 'has_update_privilege': has_update_privilege,
+                   'has_delete_privilege': has_delete_privilege, 'has_insert_privilege': has_insert_privilege,
                    'is_admin': user_group in ADMIN_GROUPS})
 
 
-#
 def render_settings_page(request):
+    # Инициализация is_connected на основе сессии
+    is_connected = request.session.get('is_connected', False)
+
     if request.method == 'POST':
-        host_url = request.POST["host"]
-        db_name = request.POST["database"]
-        username = request.POST["username"]
-        password = request.POST["password"]
+        # Считывание данных из формы
+        host_url = request.POST.get("host", "")
+        db_name = request.POST.get("database", "")
+        username = request.POST.get("username", "")
+        password = request.POST.get("password", "")
+
+        # Сохранение данных подключения в сессию
         request.session['host_url'] = host_url
         request.session['db_name'] = db_name
         request.session['username'] = username
         request.session['password'] = password
 
         try:
+            # Попытка подключения к базе данных
             conn = psycopg2.connect(dbname=db_name, user=username, password=password, host=host_url)
             conn.close()
+            is_connected = True
         except Exception as ex:
-            return render(request, 'settings.html', {'username': request.user.username, 'error': ex, 'db_host_url': '',
-                                                     'db_name': '', 'db_username': '', 'db_password': ''})
+            is_connected = False
+            return render(request, 'settings.html', {
+                'username': request.user.username,
+                'error': str(ex),
+                'db_host_url': '',
+                'db_name': '',
+                'db_username': '',
+                'db_password': '',
+                'is_connected': is_connected
+            })
 
-        return render(request, 'settings.html', {'username': request.user.username, 'status': 'Successfully connected',
-                                                 'db_host_url': request.session['host_url'],
-                                                 'db_name': request.session['db_name'],
-                                                 'db_username': request.session['username'],
-                                                 'db_password': request.session['password']})
+        # Обновление статуса подключения в сессии
+        request.session['is_connected'] = is_connected
+
+        # Возвращение успешного ответа
+        return render(request, 'settings.html', {
+            'username': request.user.username,
+            'status': 'Successfully connected' if is_connected else 'Connection failed',
+            'db_host_url': host_url,
+            'db_name': db_name,
+            'db_username': username,
+            'db_password': password,
+            'is_connected': is_connected
+        })
+
     else:
-        if 'host_url' in request.session and \
-                'db_name' in request.session and \
-                'username' in request.session and \
-                'password' in request.session:
-            return render(request, 'settings.html',
-                          {'username': request.user.username, 'db_host_url': request.session['host_url'],
-                           'db_name': request.session['db_name'], 'db_username': request.session['username'],
-                           'db_password': request.session['password']})
-        else:
-            return render(request, 'settings.html', {'username': request.user.username, 'db_host_url': '',
-                                                     'db_name': '', 'db_username': '', 'db_password': ''})
+        # Отображение страницы настроек с текущими параметрами из сессии
+        return render(request, 'settings.html', {
+            'username': request.user.username,
+            'db_host_url': request.session.get('host_url', ''),
+            'db_name': request.session.get('db_name', ''),
+            'db_username': request.session.get('username', ''),
+            'db_password': request.session.get('password', ''),
+            'is_connected': is_connected
+        })
 
 
 def render_auth_page(request):

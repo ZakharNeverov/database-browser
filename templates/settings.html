@@ -16,10 +16,10 @@
             background-color: #333;
             color: white;
             padding: 1rem;
-            height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Adjust alignment */
+            min-height: 100vh;
+            max-height: 100%;
         }
 
         #sidebar a, .logout-button, .account-name {
@@ -52,9 +52,11 @@
             height: 100vh;
             overflow: auto;
         }
+
         #connection-list {
             width: 30%;
         }
+
         input, button {
             margin: 0.5em 0;
             padding: 0.5em;
@@ -81,6 +83,28 @@
 
         svg {
             transform: translate(0, 0.28rem);
+        }
+
+        .error-message {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            position: relative;
+            padding: 0.75rem 1.25rem;
+            margin-bottom: 1rem;
+            border: 1px solid transparent;
+            border-radius: 0.25rem;
+        }
+
+        .status-message {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            position: relative;
+            padding: 0.75rem 1.25rem;
+            margin-bottom: 1rem;
+            border: 1px solid transparent;
+            border-radius: 0.25rem;
         }
 
         .modal {
@@ -155,9 +179,14 @@
     {% if error is not None %}
         <div class="error-message">Error: {{ error }}</div>
     {% endif %}
-    {% if status is not None %}
-        <div class="status-message">Status: {{ status }}</div>
+    {% if status is not None or is_connected %}
+        {% if status is not None %}
+            <div class="status-message">Status: {{ status }}</div>
+        {% endif %}
+
+        <div class="status-message">Connected to {{ db_name }} as {{ db_username }}</div>
     {% endif %}
+
     <div id="connection-list">
         <form method="post" action="">
             {% csrf_token %}
