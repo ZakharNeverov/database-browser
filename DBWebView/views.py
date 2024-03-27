@@ -226,8 +226,12 @@ def render_main_page(request, tablename=None, viewname=None, triggername=None, f
             # Directly query the view
             query = SQL("SELECT * FROM {}").format(Identifier(viewname))
             cursor.execute(query)
-            table_contents = [row for row in cursor]
+            table_contents = [[element if element is not None else "" for element in row] for row in cursor.fetchall()]
             table_headers = [col.name for col in cursor.description]
+            combined_data = [
+                {"row_data": dict(zip(table_headers, row)), "row_primary_key": row[0]}
+                for row in table_contents
+            ]
         elif triggername is not None:
             # Получение текста триггера по его имени
             query = SQL("SELECT action_statement FROM INFORMATION_SCHEMA.triggers WHERE trigger_name = %s")
@@ -256,7 +260,7 @@ def render_main_page(request, tablename=None, viewname=None, triggername=None, f
             conn.close()
 
     return render(request, 'index.html',
-                  {'username': request.user.username, 'db_name': request.session['db_name'], 'table_list': table_list,
+                  {'username': request.user.username, 'db_name': request.session['db_name'], 'db_username': request.session['username'], 'table_list': table_list,
                    'tables_privileges': tables_privileges, 'current_table_privileges': current_table_privileges,
                    'view_list': views_list, 'trigger_list': trigger_list, 'fucntion_list': function_list,
                    'table_contents': table_contents, 'table_headers': table_headers, 'tablename': tablename, 'combined_data': combined_data, 'column_types': column_types,

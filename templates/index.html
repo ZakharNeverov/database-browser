@@ -193,6 +193,65 @@
         .buttons-container > :last-child {
             margin-right: 0;
         }
+
+        .ui-datepicker {
+            padding: 10px;
+            background: #333;
+            border: 1px solid #555;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            color: #fff;
+        }
+
+        .ui-datepicker a {
+            color: #ddd;
+            text-decoration: none;
+        }
+
+        .ui-datepicker table {
+            width: 100%;
+            font-size: 0.9em;
+        }
+
+        .ui-datepicker th {
+            color: #aaa;
+            padding: 5px 0;
+            text-align: center;
+            font-weight: normal;
+        }
+
+        .ui-datepicker td {
+            padding: 5px;
+            text-align: center;
+        }
+
+        .ui-datepicker .ui-state-default {
+            background: #444;
+            color: #fff;
+            line-height: 1.6em;
+            text-align: center;
+            border: 1px solid #555;
+        }
+
+        .ui-datepicker .ui-state-hover,
+        .ui-datepicker .ui-state-active,
+        .ui-datepicker .ui-state-highlight {
+            background: #555;
+            color: #fff;
+            border: 1px solid #666;
+        }
+
+        .ui-datepicker .ui-state-disabled {
+            color: #777;
+        }
+        .ui-datepicker-header {
+
+            background-color: #777;
+        }
+        .ui-datepicker .ui-icon {
+            display: none; /* Скрыть иконки переключения месяцев */
+        }
+
+
     </style>
     <script>
         $(document).ready(function () {
@@ -432,7 +491,7 @@
         </ul>
     </details>
     <div style="color: #4CAF50;">Connected</div>
-    to {{ db_name }}
+    to {{ db_name }} as {{ db_username }}
 </div>
 
 <div class="content">
@@ -448,11 +507,12 @@
 
     {% if table_headers is not None and table_contents is not None %}
         {% if tablename is not None %}
-            <div>current user's privileges for this table: {{ current_table_privileges }}</div>
+            <div>{{ db_username }}'s privileges for this table: {{ current_table_privileges }}</div>
         {% endif %}
         <div class="buttons-container">
             <button class="table-button export-xls-button"
-                    onclick="window.location.href = '{% if tablename %}{% url 'export' tablename 'xlsx' %}{% else %}{% url 'export' viewname 'xlsx' %}{% endif %}'">
+                    onclick="window.location.href = '
+                            {% if tablename %}{% url 'export' tablename 'xlsx' %}{% else %}{% url 'export' viewname 'xlsx' %}{% endif %}'">
 
                 <span class="material-symbols-outlined">
                 table
@@ -462,7 +522,8 @@
                 </span>
             </button> <!-- Иконка для XLS -->
             <button class="table-button export-csv-button"
-                    onclick="window.location.href = '{% if tablename %}{% url 'export' tablename 'csv' %}{% else %}{% url 'export' viewname 'csv' %}{% endif %}'">
+                    onclick="window.location.href = '
+                            {% if tablename %}{% url 'export' tablename 'csv' %}{% else %}{% url 'export' viewname 'csv' %}{% endif %}'">
                 <span class="material-symbols-outlined">
                 csv
                 </span>
@@ -471,7 +532,8 @@
                 </span>
             </button> <!-- Иконка для CSV -->
             <button class="table-button export-tex-button"
-                    onclick="window.location.href = '{% if tablename %}{% url 'export' tablename 'tex' %}{% else %}{% url 'export' viewname 'tex' %}{% endif %}'">
+                    onclick="window.location.href = '
+                            {% if tablename %}{% url 'export' tablename 'tex' %}{% else %}{% url 'export' viewname 'tex' %}{% endif %}'">
                 <span class="material-symbols-outlined">
                 function
                 </span>
@@ -531,16 +593,20 @@
             {% if viewname is None %}
                 {% if has_insert_privilege %}
                     <tr>
-                        {% for element in table_headers %}
+                        {% for header, type in column_types.items %}
                             <td>
-                                <input type="text" name="{{ table_headers|index:forloop.counter0 }}">
+                                {% if type == 'date' %}
+                                    <input type="text" class="date-picker" name="{{ header }}">
+                                {% else %}
+                                    <input type="text" name="{{ header }}">
+                                {% endif %}
                             </td>
                         {% endfor %}
                         <td>
                             <button class="add-btn table-button">
-                                <span class="material-symbols-outlined">
+                            <span class="material-symbols-outlined">
                                 add
-                                </span>
+                            </span>
                             </button>
                         </td>
                     </tr>
